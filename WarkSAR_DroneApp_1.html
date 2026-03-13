@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>WarkSAR Drone Ops</title>
+<meta name="theme-color" content="#0b0f14">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0f14;
+  --surface: #141a22;
+  --surface2: #1c2530;
+  --border: #253040;
+  --orange: #f07030;
+  --orange-dim: #5a2a12;
+  --amber: #e0a020;
+  --amber-dim: #4a3608;
+  --green: #30a050;
+  --green-dim: #0e3020;
+  --red: #e03030;
+  --red-dim: #3a0e0e;
+  --blue: #3080d0;
+  --text: #e8f0f8;
+  --muted: #6080a0;
+  --cond: 'Barlow Condensed', sans-serif;
+  --sans: 'Barlow', sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); }
+
+/* ── APP SHELL ── */
+.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+/* ── TOP BAR ── */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: calc(12px + var(--safe-top)) 16px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.logo-badge {
+  background: var(--orange); color: white;
+  font-family: var(--cond); font-weight: 800; font-size: 0.85rem; letter-spacing: 0.06em;
+  padding: 4px 8px; border-radius: 4px;
+}
+.topbar h1 { font-family: var(--cond); font-size: 1.1rem; font-weight: 700; letter-spacing: 0.03em; line-height: 1; }
+.topbar .sub { font-size: 0.65rem; color: var(--muted); margin-top: 1px; }
+.topbar-btns { display: flex; gap: 8px; }
+.icon-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; cursor: pointer; transition: all 0.15s;
+}
+.icon-btn:active { background: var(--border); transform: scale(0.93); }
+.icon-btn.active { background: var(--orange-dim); border-color: var(--orange); color: var(--orange); }
+
+/* ── NAV TABS ── */
+.nav {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; overflow-x: auto; flex-shrink: 0;
+  scrollbar-width: none;
+}
+.nav::-webkit-scrollbar { display: none; }
+.nav-tab {
+  flex: 0 0 auto; padding: 10px 14px;
+  font-family: var(--cond); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--muted);
+  border: none; background: none; cursor: pointer;
+  border-bottom: 2px solid transparent; white-space: nowrap;
+  transition: color 0.15s;
+}
+.nav-tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+/* ── SCROLL AREA ── */
+.scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.panel { display: none; padding: 14px 14px calc(80px + var(--safe-bottom)); }
+.panel.active { display: block; }
+
+/* ── FLIGHT HEADER FORM ── */
+.flight-form {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px; margin-bottom: 14px;
+}
+.form-title {
+  font-family: var(--cond); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--orange); margin-bottom: 10px;
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.form-field { display: flex; flex-direction: column; gap: 4px; }
+.form-field.full { grid-column: 1 / -1; }
+.form-field label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.form-field input, .form-field select, .form-field textarea {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); font-family: var(--sans); font-size: 0.88rem;
+  padding: 8px 10px; outline: none; transition: border-color 0.15s;
+  -webkit-appearance: none;
+}
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+  border-color: var(--orange);
+}
+.form-field textarea { resize: none; height: 60px; }
+.form-field select option { background: var(--surface2); }
+
+/* ── WARNING BOX ── */
+.warning-box {
+  background: var(--amber-dim); border: 1px solid var(--amber);
+  border-left: 3px solid var(--amber); border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 12px;
+}
+.warning-box .w-title {
+  font-family: var(--cond); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--amber); margin-bottom: 6px;
+}
+.warning-box ul { padding-left: 14px; }
+.warning-box li { font-size: 0.78rem; color: #c8a060; margin-bottom: 3px; line-height: 1.4; }
+
+.authority-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-left: 3px solid var(--blue); border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 12px;
+  font-size: 0.78rem; color: var(--muted); line-height: 1.5;
+}
+.authority-box strong { color: var(--blue); }
+
+/* ── PROGRESS BAR ── */
+.prog-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.prog-bar { flex: 1; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.3s; }
+.prog-label { font-size: 0.72rem; color: var(--muted); white-space: nowrap; font-family: var(--cond); font-weight: 600; }
+.reset-btn {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 0.68rem; padding: 4px 10px; border-radius: 5px; cursor: pointer;
+  font-family: var(--cond); font-weight: 600; letter-spacing: 0.05em;
+}
+.reset-btn:active { border-color: var(--orange); color: var(--orange); }
+
+/* ── GROUP HEADER ── */
+.group-header {
+  font-family: var(--cond); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--orange);
+  display: flex; align-items: center; gap: 8px; margin: 16px 0 8px;
+}
+.group-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── CHECK ITEMS ── */
+.check-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 11px 12px; margin-bottom: 6px;
+  cursor: pointer; transition: background 0.1s;
+  -webkit-user-select: none; user-select: none;
+}
+.check-item:active { transform: scale(0.99); }
+.check-item.critical { border-left: 3px solid var(--red); }
+.check-item.done { background: var(--green-dim); border-color: var(--green); }
+.check-item.done.critical { border-left-color: var(--green); }
+.check-box {
+  width: 22px; height: 22px; min-width: 22px; border-radius: 5px;
+  border: 2px solid var(--border); background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 1px; transition: all 0.15s; font-size: 0.8rem;
+}
+.check-item.done .check-box { background: var(--green); border-color: var(--green); }
+.check-item.done .check-box::after { content: '✓'; color: white; font-weight: 800; font-size: 13px; }
+.check-label { font-size: 0.88rem; font-weight: 500; line-height: 1.35; }
+.check-item.done .check-label { text-decoration: line-through; color: var(--muted); }
+.check-sub { font-size: 0.73rem; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+.tag-crit { font-size: 0.62rem; font-weight: 700; background: var(--red-dim); color: var(--red); padding: 1px 5px; border-radius: 3px; margin-left: 4px; letter-spacing: 0.05em; vertical-align: middle; }
+.tag-caa  { font-size: 0.62rem; font-weight: 700; background: #102818; color: #50c080; padding: 1px 5px; border-radius: 3px; margin-left: 4px; letter-spacing: 0.05em; vertical-align: middle; }
+.tag-wx   { font-size: 0.62rem; font-weight: 700; background: #102030; color: #5090d0; padding: 1px 5px; border-radius: 3px; margin-left: 4px; letter-spacing: 0.05em; vertical-align: middle; }
+
+/* ── GO/NO-GO TABLE ── */
+.gng-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 12px; }
+.gng-table th { padding: 8px 10px; font-family: var(--cond); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.gng-table th:nth-child(1) { background: var(--surface2); color: var(--muted); text-align: left; }
+.gng-table th:nth-child(2) { background: var(--green-dim); color: var(--green); text-align: center; }
+.gng-table th:nth-child(3) { background: var(--red-dim); color: var(--red); text-align: center; }
+.gng-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.gng-table td:nth-child(1) { font-weight: 600; color: var(--amber); }
+.gng-table td:nth-child(2) { color: var(--green); }
+.gng-table td:nth-child(3) { color: var(--red); }
+.gng-table tr:last-child td { border-bottom: none; }
+
+/* ── ABORT STATIC ITEMS ── */
+.abort-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--red-dim); border: 1px solid var(--red);
+  border-radius: 8px; padding: 10px 12px; margin-bottom: 6px;
+}
+.abort-item .ai { font-size: 1rem; }
+.abort-label { font-size: 0.84rem; font-weight: 500; line-height: 1.35; }
+.abort-sub { font-size: 0.72rem; color: #c08080; margin-top: 3px; line-height: 1.4; }
+
+/* ── FLIGHT LOG ── */
+.flight-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px; margin-bottom: 10px;
+}
+.flight-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.flight-card-title { font-family: var(--cond); font-size: 1rem; font-weight: 700; }
+.flight-card-date { font-size: 0.72rem; color: var(--muted); }
+.flight-card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-bottom: 10px; }
+.meta-item { font-size: 0.75rem; color: var(--muted); }
+.meta-item strong { color: var(--text); font-weight: 600; }
+.flight-card-scores { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.score-badge {
+  font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; font-weight: 600; font-family: var(--cond);
+  letter-spacing: 0.05em;
+}
+.score-full { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+.score-partial { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+.flight-card-actions { display: flex; gap: 8px; }
+.card-btn {
+  flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--muted); font-family: var(--cond);
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; cursor: pointer;
+  text-transform: uppercase; transition: all 0.15s;
+}
+.card-btn:active { background: var(--border); }
+.card-btn.danger { border-color: var(--red-dim); color: var(--red); }
+.card-btn.primary { border-color: var(--orange); color: var(--orange); background: var(--orange-dim); }
+
+.empty-state { text-align: center; padding: 48px 24px; color: var(--muted); }
+.empty-state .es-icon { font-size: 2.5rem; margin-bottom: 12px; }
+.empty-state p { font-size: 0.85rem; line-height: 1.6; }
+
+/* ── BOTTOM ACTION BAR ── */
+.bottom-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-top: 1px solid var(--border);
+  padding: 10px 14px calc(10px + var(--safe-bottom));
+  display: none;
+}
+.bottom-bar.visible { display: block; }
+.save-btn {
+  width: 100%; padding: 14px; background: var(--orange); color: white;
+  border: none; border-radius: 10px; font-family: var(--cond); font-size: 1rem;
+  font-weight: 700; letter-spacing: 0.06em; cursor: pointer; transition: opacity 0.15s;
+}
+.save-btn:active { opacity: 0.8; }
+.save-btn:disabled { background: var(--surface2); color: var(--muted); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  display: none; align-items: flex-end; justify-content: center; z-index: 100;
+  padding: 0;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border-top: 1px solid var(--border);
+  border-radius: 18px 18px 0 0; width: 100%; max-height: 80vh;
+  overflow-y: auto; padding: 20px 16px calc(20px + var(--safe-bottom));
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-title { font-family: var(--cond); font-size: 1.1rem; font-weight: 700; margin-bottom: 14px; }
+.modal-close {
+  float: right; background: none; border: none; color: var(--muted);
+  font-size: 1.4rem; cursor: pointer; line-height: 1;
+}
+
+/* ── PRINT ── */
+
+/* ── INSTALL BANNER ── */
+.install-banner {
+  background: var(--orange-dim); border-bottom: 1px solid var(--orange);
+  padding: 10px 14px; display: none; align-items: center; justify-content: space-between;
+  gap: 10px; flex-shrink: 0;
+}
+.install-banner.show { display: flex; }
+.install-banner-text { font-size: 0.78rem; color: var(--orange); font-weight: 500; line-height: 1.4; }
+.install-banner-btn {
+  background: var(--orange); color: white; border: none; border-radius: 6px;
+  padding: 7px 14px; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  white-space: nowrap; font-family: var(--cond); letter-spacing: 0.04em;
+}
+
+@media print {
+  body { background: white; color: black; font-family: Arial, sans-serif; overflow: visible; }
+  .app { height: auto; overflow: visible; }
+  .topbar, .nav, .bottom-bar, .modal-overlay { display: none !important; }
+  .scroll { overflow: visible; }
+  .panel { display: block !important; padding: 0; page-break-after: always; }
+  .panel:last-child { page-break-after: avoid; }
+  .print-report { display: block !important; }
+  .check-item { background: white; border: 1px solid #ccc; break-inside: avoid; }
+  .check-item.done { background: #e8f5e8; border-color: #4a8; }
+  .check-box { border: 2px solid #999; }
+  .check-item.done .check-box::after { content: '✓'; }
+  .warning-box { background: #fff8e0; border-color: #c90; }
+  .warning-box .w-title { color: #a06000; }
+  .warning-box li { color: #606060; }
+  .group-header { color: #c04000; }
+  .check-label { color: black; }
+  .check-sub { color: #606060; }
+  .tag-crit { background: #fee; color: #c00; }
+  .flight-form { background: #f5f5f5; border: 1px solid #ccc; }
+  .gng-table th:nth-child(1) { background: #eee; color: #333; }
+  .gng-table th:nth-child(2) { background: #e8f5e8; color: #2a6; }
+  .gng-table th:nth-child(3) { background: #fee; color: #c00; }
+  .gng-table td:nth-child(2) { color: #2a6; }
+  .gng-table td:nth-child(3) { color: #c00; }
+  .abort-item { background: #fee; border-color: #c00; }
+  .abort-label { color: #800; }
+  .flight-card { background: #f5f5f5; border: 1px solid #ccc; break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-badge">WARKSAR</div>
+      <div>
+        <div class="topbar h1" style="font-family:var(--cond);font-size:1.05rem;font-weight:700;">Drone Ops</div>
+        <div class="sub" id="flight-status-bar">No active flight</div>
+      </div>
+    </div>
+    <div class="topbar-btns">
+      <button class="icon-btn" id="install-btn" onclick="installApp()" title="Install app" style="display:none;">📲</button>
+      <button class="icon-btn" id="print-btn" onclick="printReport()" title="Print">🖨</button>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <button class="nav-tab active" onclick="switchTab(0,this)">Survey</button>
+    <button class="nav-tab" onclick="switchTab(1,this)">Pre-Flight</button>
+    <button class="nav-tab" onclick="switchTab(2,this)">Pilot</button>
+    <button class="nav-tab" onclick="switchTab(3,this)">Post-Flight</button>
+    <button class="nav-tab" onclick="switchTab(4,this)">Abort</button>
+    <button class="nav-tab" onclick="switchTab(5,this)">Log</button>
+  </div>
+
+  <!-- INSTALL BANNER (shown manually if needed) -->
+  <div class="install-banner" id="install-banner">
+    <div class="install-banner-text">📲 Add to your home screen for the best experience</div>
+    <button class="install-banner-btn" onclick="installApp()">Install</button>
+    <button onclick="document.getElementById('install-banner').style.display='none'" style="background:none;border:none;color:var(--orange);font-size:1.1rem;cursor:pointer;padding:0 4px;">×</button>
+  </div>
+
+  <!-- SCROLL AREA -->
+  <div class="scroll" id="scroll-area">
+
+    <!-- ===== TAB 0: SITE SURVEY ===== -->
+    <div class="panel active" id="panel-0">
+      <div class="flight-form" id="survey-form">
+        <div class="form-title">Flight Details</div>
+        <div class="form-grid">
+          <div class="form-field"><label>Date</label><input type="date" id="f-date"></div>
+          <div class="form-field"><label>Time (dispatch)</label><input type="time" id="f-time"></div>
+          <div class="form-field"><label>Pilot</label><input type="text" id="f-pilot" placeholder="Name"></div>
+          <div class="form-field"><label>Spotter</label><input type="text" id="f-spotter" placeholder="Name"></div>
+          <div class="form-field full"><label>Location / Incident</label><input type="text" id="f-location" placeholder="e.g. Ufton Wood, CV33"></div>
+          <div class="form-field"><label>Incident Ref</label><input type="text" id="f-ref" placeholder="PolSA ref"></div>
+          <div class="form-field"><label>Battery ID(s)</label><input type="text" id="f-batteries" placeholder="B1, B2..."></div>
+          <div class="form-field full"><label>Weather conditions</label><input type="text" id="f-weather" placeholder="e.g. Clear, 8°C, wind 10mph NW"></div>
+          <div class="form-field full"><label>Notes</label><textarea id="f-notes" placeholder="Any additional notes..."></textarea></div>
+        </div>
+      </div>
+
+      <div class="warning-box">
+        <div class="w-title">⚠ Legacy Drone — Check Before Every Flight</div>
+        <ul>
+          <li>No water resistance — DO NOT fly in rain, mist, heavy dew or fog</li>
+          <li>Check motor housings for moisture or condensation before powering on</li>
+          <li>Confirm batteries are dry — do not use if stored in damp conditions</li>
+          <li>May lack obstacle avoidance — rely on visual and spotter at all times</li>
+        </ul>
+      </div>
+
+      <div class="authority-box">
+        <strong>Regulatory basis:</strong> CAA ANO 2016 & UK UAS Regulations. The Remote Pilot must conduct a dynamic risk assessment before launching. This checklist fulfils that requirement.
+      </div>
+
+      <div class="prog-row">
+        <div class="prog-bar"><div class="prog-fill" id="prog-0" style="width:0%"></div></div>
+        <div class="prog-label" id="plabel-0">0 / 20</div>
+        <button class="reset-btn" onclick="resetPanel(0)">Reset</button>
+      </div>
+
+      <div class="group-header">Airspace & Authorisation</div>
+      <div class="check-item critical" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Checked NATS / Drone Assist for airspace restrictions <span class="tag-caa">CAA</span></div><div class="check-sub">Confirm not within FRZ, ATZ or active TFR. Use Drone Assist, AirHub or NATS Helios.</div></div></div>
+      <div class="check-item critical" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">PolSA / Incident Commander has authorised deployment <span class="tag-crit">CRITICAL</span></div><div class="check-sub">Tasking authority rests with the PolSA. WarkSAR does not self-deploy.</div></div></div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">NPAS / air ambulance deconfliction confirmed</div><div class="check-sub">Agree height or geographic separation. If unexpected manned aircraft enters area, land immediately.</div></div></div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Operational Authorisation (OA) number recorded in flight log</div></div></div>
+
+      <div class="group-header">Weather <span class="tag-wx" style="margin-left:6px;">No IP Rating</span></div>
+      <div class="check-item critical" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Sky clear — no rain, drizzle, mist or heavy fog <span class="tag-crit">NO-FLY IF WET</span></div><div class="check-sub">Legacy drone has no water resistance. Any precipitation = grounded. Check forecast for full operation duration.</div></div></div>
+      <div class="check-item critical" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Wind speed confirmed below 22 mph <span class="tag-crit">CRITICAL</span></div><div class="check-sub">Check at ground level and estimated altitude. Gusts increase risk significantly.</div></div></div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Visibility sufficient for VLOS throughout planned area</div><div class="check-sub">CAA requires unaided Visual Line of Sight at all times. Reduce range if visibility is reduced.</div></div></div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Temperature within drone operating limits — battery performance noted</div><div class="check-sub">Below 5°C: warm batteries before flight. Reduce max flight time estimate.</div></div></div>
+
+      <div class="group-header">Ground Environment</div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Safe launch / landing zone identified — firm, flat, clear of debris</div><div class="check-sub">Min 5m clear radius. Avoid wet grass or mud — can splash onto unprotected motors.</div></div></div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Overhead hazards surveyed — power lines, trees, structures, bridges</div><div class="check-sub">Walk the area. Look up as well as around. Legacy drone requires full pilot/spotter awareness.</div></div></div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Public and bystanders noted — safety distances maintained</div><div class="check-sub">Assign someone to crowd management if needed. Keep uninvolved persons clear of the operational area.</div></div></div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Animals / livestock in area assessed</div><div class="check-sub">Drone noise can cause distress or stampede. Inform search coordinator. Avoid flying directly over livestock.</div></div></div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">RTH point set and confirmed clear of obstructions</div><div class="check-sub">Confirm the Home Point is at the intended launch location and safe for auto-return.</div></div></div>
+
+      <div class="group-header">Communications & Coordination</div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Radio contact established with Incident Control / PolSA</div></div></div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Search area defined and agreed with search coordinator</div><div class="check-sub">Define the segment to fly. Confirm with ground teams to avoid conflict with foot search areas.</div></div></div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Contingency for loss of drone agreed (crash / signal loss / battery fail)</div></div></div>
+      <div class="check-item" onclick="tick(this,0)"><div class="check-box"></div><div><div class="check-label">Flight log started — date, time, location, crew, aircraft, battery IDs</div></div></div>
+    </div>
+
+    <!-- ===== TAB 1: PRE-FLIGHT ===== -->
+    <div class="panel" id="panel-1">
+      <div class="warning-box">
+        <div class="w-title">⚠ Legacy Drone — Additional Checks</div>
+        <ul>
+          <li>Inspect airframe for cracks, stress marks or damage from previous flights</li>
+          <li>Confirm firmware is current — legacy drones may not auto-update</li>
+          <li>Compass may need more frequent calibration on older platforms</li>
+        </ul>
+      </div>
+      <div class="prog-row">
+        <div class="prog-bar"><div class="prog-fill" id="prog-1" style="width:0%"></div></div>
+        <div class="prog-label" id="plabel-1">0 / 18</div>
+        <button class="reset-btn" onclick="resetPanel(1)">Reset</button>
+      </div>
+
+      <div class="group-header">Physical Inspection</div>
+      <div class="check-item critical" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">All propellers inspected — no chips, cracks or warping <span class="tag-crit">CRITICAL</span></div><div class="check-sub">Damaged props are a leading cause of in-flight failure. Replace if any damage found.</div></div></div>
+      <div class="check-item critical" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">All propellers securely fitted and locked <span class="tag-crit">CRITICAL</span></div><div class="check-sub">Check each prop is clicked/locked. Loose props can disengage in flight.</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Airframe inspected — no cracks, loose screws or damage</div><div class="check-sub">Pay attention to arm joints and landing gear. Legacy drones are more likely to show fatigue.</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Camera / gimbal inspected — lock removed, lens clean and undamaged</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Motor mounts and arms free of debris, mud or moisture</div><div class="check-sub">Any moisture in motor housing must be fully dried before flight — no IP rating.</div></div></div>
+
+      <div class="group-header">Battery & Power</div>
+      <div class="check-item critical" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Flight battery ≥80% charged and firmly seated <span class="tag-crit">CRITICAL</span></div><div class="check-sub">Battery must be clicked securely. A loose battery can disconnect mid-flight.</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Battery health checked — no swelling, damage or error warnings</div><div class="check-sub">Do not use swollen or very cold battery. Warm to at least 10°C in cold conditions.</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Spare batteries accounted for, charged and accessible</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Remote controller battery sufficient for full operation</div></div></div>
+
+      <div class="group-header">Systems & Software</div>
+      <div class="check-item critical" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">GPS lock acquired — minimum 6 satellites, strong signal <span class="tag-crit">CRITICAL</span></div><div class="check-sub">Do not fly without GPS lock in an operational SAR context. Wait for stable lock.</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Home point confirmed correct on controller map</div><div class="check-sub">Verify it is at the intended RTH location, not a previous flight location.</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">RTH altitude set above highest obstacle in flight path</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Compass calibrated — no interference warnings on app</div><div class="check-sub">Recalibrate if app indicates, or near metal structures. Do not calibrate near the search vehicle.</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">IMU status normal — no errors or warnings</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Storage media inserted, space sufficient, recording confirmed</div><div class="check-sub">SAR imagery may be required for evidential handover. Confirm recording mode before launch.</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Low battery RTH and critical battery thresholds reviewed</div></div></div>
+
+      <div class="group-header">Final Go / No-Go</div>
+      <div class="check-item critical" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Weather re-confirmed — no precipitation, wind below 22 mph <span class="tag-crit">NO-FLY IF WET</span></div><div class="check-sub">Conditions change fast. Re-check immediately before launch.</div></div></div>
+      <div class="check-item" onclick="tick(this,1)"><div class="check-box"></div><div><div class="check-label">Spotter in position, radio check complete, bystanders clear</div><div class="check-sub">Do not launch without spotter confirmed at post and in radio contact.</div></div></div>
+    </div>
+
+    <!-- ===== TAB 2: PILOT ===== -->
+    <div class="panel" id="panel-2">
+      <div class="authority-box">
+        <strong>Lowland Rescue standard:</strong> Pilots must hold a current A2 CofC (Open Category) or GVC (Specific Category). All SAR drone operations require deconfliction with NPAS, air ambulance, and RAF low flying cell as appropriate.
+      </div>
+      <div class="prog-row">
+        <div class="prog-bar"><div class="prog-fill" id="prog-2" style="width:0%"></div></div>
+        <div class="prog-label" id="plabel-2">0 / 16</div>
+        <button class="reset-btn" onclick="resetPanel(2)">Reset</button>
+      </div>
+
+      <div class="group-header">Qualifications & Currency</div>
+      <div class="check-item critical" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">CAA Flyer ID current and in-date <span class="tag-caa">CAA</span></div><div class="check-sub">Renewed every 3 years. Carry proof during operations.</div></div></div>
+      <div class="check-item critical" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">A2 CofC or GVC valid for this operation type <span class="tag-caa">CAA</span></div><div class="check-sub">A2 CofC for Open Category; GVC for Specific Category SAR operations.</div></div></div>
+      <div class="check-item" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">WarkSAR Operator ID displayed on drone</div><div class="check-sub">CAA requires operator ID label on all drones 250g–20kg.</div></div></div>
+      <div class="check-item" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">Minimum recency — one documented flight in last 90 days on this platform</div><div class="check-sub">If not current, conduct a familiarisation flight before SAR deployment.</div></div></div>
+      <div class="check-item" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">Completed WarkSAR drone induction / refresher in current year</div></div></div>
+
+      <div class="group-header">Pilot Fitness</div>
+      <div class="check-item critical" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">Pilot is fit to fly — not fatigued, unwell or impaired <span class="tag-crit">CRITICAL</span></div><div class="check-sub">Self-declare. SAR callouts come at night and after long days. Fatigue seriously impairs judgement. If impaired, stand down.</div></div></div>
+      <div class="check-item" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">No medications or substances affecting concentration or reaction time</div></div></div>
+      <div class="check-item" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">Adequate clothing — warm, waterproofs, high-vis if needed</div><div class="check-sub">Cold hands reduce dexterity significantly. Wear gloves that allow feel on the sticks.</div></div></div>
+
+      <div class="group-header">Spotter / Visual Observer</div>
+      <div class="check-item critical" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">Qualified spotter assigned and briefed <span class="tag-crit">CRITICAL</span></div><div class="check-sub">Two-person operation is Lowland Rescue standard. Spotter maintains VLOS, monitors airspace and manages bystanders.</div></div></div>
+      <div class="check-item" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">Spotter briefed on emergency procedures</div><div class="check-sub">Signal loss, aircraft failure, unexpected airspace incursion.</div></div></div>
+      <div class="check-item" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">Radio comms tested — pilot, spotter and incident control</div></div></div>
+
+      <div class="group-header">Operational Briefing</div>
+      <div class="check-item" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">Search area briefed — grid, boundaries, priority zones, subject description</div><div class="check-sub">Understand what you are looking for and where. Agree a systematic search pattern.</div></div></div>
+      <div class="check-item" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">Action on find briefed — communication protocol if subject is located</div><div class="check-sub">Know what to report, to whom, and via which channel. Confirm GPS coordinate format.</div></div></div>
+      <div class="check-item" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">Emergency landing site identified and communicated to all crew</div></div></div>
+      <div class="check-item" onclick="tick(this,2)"><div class="check-box"></div><div><div class="check-label">Post-flight image review responsibilities assigned</div><div class="check-sub">Confirm who reviews footage, especially if police evidence handover may be required.</div></div></div>
+    </div>
+
+    <!-- ===== TAB 3: POST-FLIGHT ===== -->
+    <div class="panel" id="panel-3">
+      <div class="prog-row">
+        <div class="prog-bar"><div class="prog-fill" id="prog-3" style="width:0%"></div></div>
+        <div class="prog-label" id="plabel-3">0 / 12</div>
+        <button class="reset-btn" onclick="resetPanel(3)">Reset</button>
+      </div>
+
+      <div class="flight-form" id="postflight-form">
+        <div class="form-title">Flight Completion Details</div>
+        <div class="form-grid">
+          <div class="form-field"><label>Landing time</label><input type="time" id="f-landtime"></div>
+          <div class="form-field"><label>Flight duration (mins)</label><input type="number" id="f-duration" placeholder="e.g. 22"></div>
+          <div class="form-field full"><label>Findings / outcome</label><textarea id="f-findings" placeholder="e.g. Area searched clear / Subject located at grid..."></textarea></div>
+        </div>
+      </div>
+
+      <div class="group-header">Immediate Post-Landing</div>
+      <div class="check-item" onclick="tick(this,3)"><div class="check-box"></div><div><div class="check-label">Flight completion reported to Incident Control via radio</div><div class="check-sub">Report end of flight, findings, and any issues. Lowland Rescue standard procedure.</div></div></div>
+      <div class="check-item" onclick="tick(this,3)"><div class="check-box"></div><div><div class="check-label">Drone powered down — motors stopped before approaching aircraft</div></div></div>
+      <div class="check-item" onclick="tick(this,3)"><div class="check-box"></div><div><div class="check-label">Battery removed and condition noted — temperature, swelling, charge remaining</div><div class="check-sub">Hot batteries: cool before recharging. Cold batteries: do not charge immediately.</div></div></div>
+      <div class="check-item" onclick="tick(this,3)"><div class="check-box"></div><div><div class="check-label">Drone post-flight inspection — any new damage, debris or moisture</div><div class="check-sub">Log damage immediately. Do not reuse damaged equipment without assessment.</div></div></div>
+
+      <div class="group-header">Media & Evidence</div>
+      <div class="check-item critical" onclick="tick(this,3)"><div class="check-box"></div><div><div class="check-label">Flight footage secured — do not delete or overwrite <span class="tag-crit">EVIDENCE</span></div><div class="check-sub">Remove storage card and label with date, location and flight reference.</div></div></div>
+      <div class="check-item" onclick="tick(this,3)"><div class="check-box"></div><div><div class="check-label">Post-flight image review completed or scheduled</div><div class="check-sub">Review footage before declaring search area clear. Do not rely on pilot's real-time view alone.</div></div></div>
+
+      <div class="group-header">Flight Log</div>
+      <div class="check-item" onclick="tick(this,3)"><div class="check-box"></div><div><div class="check-label">Flight log completed — date, location, pilot, spotter, aircraft, batteries, duration</div></div></div>
+      <div class="check-item" onclick="tick(this,3)"><div class="check-box"></div><div><div class="check-label">Incident reference number recorded in flight log</div></div></div>
+      <div class="check-item" onclick="tick(this,3)"><div class="check-box"></div><div><div class="check-label">Defects, near-misses or airspace conflicts reported to drone lead</div></div></div>
+
+      <div class="group-header">Equipment Storage</div>
+      <div class="check-item" onclick="tick(this,3)"><div class="check-box"></div><div><div class="check-label">All components returned to hard case — props, batteries, controller, cables, cards</div></div></div>
+      <div class="check-item" onclick="tick(this,3)"><div class="check-box"></div><div><div class="check-label">Batteries set to storage charge if not flying again within 48 hours</div><div class="check-sub">Store at approx 50–60% charge per manufacturer guidance.</div></div></div>
+      <div class="check-item" onclick="tick(this,3)"><div class="check-box"></div><div><div class="check-label">Equipment ready for next deployment — or defects flagged to prevent reuse</div></div></div>
+
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+        <button class="save-btn" onclick="saveFlight()" style="background:var(--green);">💾 Save This Flight Record</button>
+      </div>
+    </div>
+
+    <!-- ===== TAB 4: ABORT ===== -->
+    <div class="panel" id="panel-4">
+      <div class="authority-box">
+        <strong>Pilot authority:</strong> The Remote Pilot in Command has final authority on whether a flight proceeds. No instruction from search management, police, or any other party overrides the pilot's safety decision.
+      </div>
+      <div class="warning-box">
+        <div class="w-title">⚠ Legacy Drone — Additional No-Fly Conditions</div>
+        <ul>
+          <li>Any precipitation — rain, drizzle, sleet, snow, mist or fog</li>
+          <li>High humidity or heavy dew on the airframe</li>
+          <li>Condensation visible inside any part of the drone body</li>
+          <li>Moisture or corrosion on battery contacts</li>
+        </ul>
+      </div>
+
+      <div class="group-header">Go / No-Go Reference</div>
+      <div style="overflow-x:auto;margin-bottom:16px;">
+        <table class="gng-table">
+          <thead><tr><th>Condition</th><th>GO ✓</th><th>NO-GO ✗</th></tr></thead>
+          <tbody>
+            <tr><td>Precipitation</td><td>None</td><td>Any rain, drizzle, sleet or snow</td></tr>
+            <tr><td>Visibility</td><td>Clear VLOS maintained</td><td>Mist, fog, smoke or darkness</td></tr>
+            <tr><td>Wind speed</td><td>Below 22 mph, steady</td><td>22 mph or above, or gusting</td></tr>
+            <tr><td>Airspace</td><td>Clear, NPAS deconflicted</td><td>Active TFR or NPAS conflict</td></tr>
+            <tr><td>Battery</td><td>≥80% at launch</td><td>Below 80% or inadequate reserve</td></tr>
+            <tr><td>GPS</td><td>6+ sats, no warnings</td><td>Weak signal, ATTI mode, warnings</td></tr>
+            <tr><td>Pilot fitness</td><td>Rested, no impairment</td><td>Fatigued, unwell or impaired</td></tr>
+            <tr><td>Spotter</td><td>Qualified, in position</td><td>No spotter available</td></tr>
+            <tr><td>PolSA auth</td><td>Explicit tasking received</td><td>No police tasking — no self-deploy</td></tr>
+            <tr><td>Drone condition</td><td>Full check passed</td><td>Defect, damage, moisture or warnings</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="group-header" style="color:var(--red);">In-Flight Abort — Land Immediately</div>
+      <div class="abort-item"><div class="ai">✈️</div><div><div class="abort-label">Unexpected manned aircraft enters the operating area</div><div class="abort-sub">Land immediately. Do not manoeuvre away. Inform PolSA. Re-establish deconfliction before relaunching.</div></div></div>
+      <div class="abort-item"><div class="ai">🌧️</div><div><div class="abort-label">Weather deteriorates — rain begins or visibility drops significantly</div></div></div>
+      <div class="abort-item"><div class="ai">🔋</div><div><div class="abort-label">Battery drops to auto-RTH level unexpectedly or faster than planned</div></div></div>
+      <div class="abort-item"><div class="ai">⚠️</div><div><div class="abort-label">Any system error, warning or abnormal flight behaviour</div></div></div>
+      <div class="abort-item"><div class="ai">🎯</div><div><div class="abort-label">Subject located — hold position overhead and report; stop search pattern</div></div></div>
+      <div class="abort-item"><div class="ai">👥</div><div><div class="abort-label">Crowd or bystander enters the safety area below the drone</div></div></div>
+    </div>
+
+    <!-- ===== TAB 5: FLIGHT LOG ===== -->
+    <div class="panel" id="panel-5">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-family:var(--cond);font-size:1.1rem;font-weight:700;">Flight Records</div>
+        <button class="reset-btn" onclick="clearAllFlights()" style="color:var(--red);border-color:var(--red-dim);">Clear All</button>
+      </div>
+      <div id="flight-log-list"></div>
+    </div>
+
+  </div><!-- end scroll -->
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar visible" id="bottom-bar">
+    <button class="save-btn" id="main-save-btn" onclick="saveFlight()">💾 Save Flight Record</button>
+  </div>
+
+</div><!-- end app -->
+
+<!-- FLIGHT DETAIL MODAL -->
+<div class="modal-overlay" id="flight-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-title" id="modal-title">Flight Detail</div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+const TOTALS = [20, 18, 16, 12];
+let flights = [];
+
+// Load from storage
+try {
+  const saved = localStorage.getItem('warksar_flights');
+  if (saved) flights = JSON.parse(saved);
+} catch(e) {}
+
+// ── TAB SWITCHING ──
+function switchTab(idx, btn) {
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i===idx));
+  document.querySelectorAll('.nav-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  const bb = document.getElementById('bottom-bar');
+  bb.style.display = (idx < 4) ? 'block' : 'none';
+  if (idx === 5) renderLog();
+  document.getElementById('scroll-area').scrollTop = 0;
+}
+
+// ── CHECKLIST ──
+function tick(el, panelIdx) {
+  el.classList.toggle('done');
+  updateProg(panelIdx);
+}
+
+function updateProg(panelIdx) {
+  const panel = document.getElementById('panel-' + panelIdx);
+  const items = panel.querySelectorAll('.check-item[onclick]');
+  const done  = panel.querySelectorAll('.check-item.done').length;
+  const pct   = items.length ? (done / items.length) * 100 : 0;
+  document.getElementById('prog-' + panelIdx).style.width = pct + '%';
+  document.getElementById('plabel-' + panelIdx).textContent = done + ' / ' + items.length;
+}
+
+function resetPanel(panelIdx) {
+  const panel = document.getElementById('panel-' + panelIdx);
+  panel.querySelectorAll('.check-item.done').forEach(el => el.classList.remove('done'));
+  updateProg(panelIdx);
+}
+
+// ── READ FORM ──
+function readFormData() {
+  return {
+    date:      document.getElementById('f-date').value,
+    time:      document.getElementById('f-time').value,
+    pilot:     document.getElementById('f-pilot').value,
+    spotter:   document.getElementById('f-spotter').value,
+    location:  document.getElementById('f-location').value,
+    ref:       document.getElementById('f-ref').value,
+    batteries: document.getElementById('f-batteries').value,
+    weather:   document.getElementById('f-weather').value,
+    notes:     document.getElementById('f-notes').value,
+    landtime:  document.getElementById('f-landtime').value,
+    duration:  document.getElementById('f-duration').value,
+    findings:  document.getElementById('f-findings').value,
+  };
+}
+
+// ── READ CHECKLIST SCORES ──
+function readScores() {
+  const labels = ['Site Survey','Pre-Flight','Pilot & Crew','Post-Flight'];
+  return [0,1,2,3].map(i => {
+    const panel = document.getElementById('panel-' + i);
+    const total = panel.querySelectorAll('.check-item[onclick]').length;
+    const done  = panel.querySelectorAll('.check-item.done').length;
+    return { label: labels[i], done, total };
+  });
+}
+
+// ── READ ITEM STATES ──
+function readItemStates() {
+  const result = {};
+  [0,1,2,3].map(i => {
+    const panel = document.getElementById('panel-' + i);
+    const items = panel.querySelectorAll('.check-item[onclick]');
+    result[i] = Array.from(items).map(el => ({
+      label: el.querySelector('.check-label').textContent.replace(/⚠.*$/,'').trim(),
+      done: el.classList.contains('done'),
+      critical: el.classList.contains('critical'),
+    }));
+  });
+  return result;
+}
+
+// ── SAVE FLIGHT ──
+function saveFlight() {
+  const form = readFormData();
+  if (!form.pilot && !form.location) {
+    alert('Please fill in at least the Pilot name and Location before saving.');
+    return;
+  }
+  const flight = {
+    id: Date.now(),
+    savedAt: new Date().toISOString(),
+    form,
+    scores: readScores(),
+    items: readItemStates(),
+  };
+  flights.unshift(flight);
+  try { localStorage.setItem('warksar_flights', JSON.stringify(flights)); } catch(e) {}
+  switchTab(5, document.querySelectorAll('.nav-tab')[5]);
+  renderLog();
+  // Flash confirmation
+  const btn = document.getElementById('main-save-btn');
+  const orig = btn.textContent;
+  btn.textContent = '✓ Saved!';
+  btn.style.background = 'var(--green)';
+  setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 2000);
+}
+
+// ── RENDER LOG ──
+function renderLog() {
+  const el = document.getElementById('flight-log-list');
+  if (flights.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">📋</div><p>No flight records saved yet.<br>Complete the checklists and tap<br><strong>Save Flight Record</strong> to log a flight.</p></div>';
+    return;
+  }
+  el.innerHTML = flights.map(f => {
+    const allFull = f.scores.every(s => s.done === s.total);
+    const badges = f.scores.map(s =>
+      `<span class="score-badge ${s.done===s.total?'score-full':'score-partial'}">${s.label}: ${s.done}/${s.total}</span>`
+    ).join('');
+    const dateStr = f.form.date ? new Date(f.form.date + 'T12:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '–';
+    return `<div class="flight-card">
+      <div class="flight-card-header">
+        <div>
+          <div class="flight-card-title">${f.form.location || 'Unnamed location'}</div>
+          <div class="flight-card-date">${dateStr} · ${f.form.time || '–'} · Ref: ${f.form.ref || '–'}</div>
+        </div>
+      </div>
+      <div class="flight-card-meta">
+        <div class="meta-item">Pilot: <strong>${f.form.pilot || '–'}</strong></div>
+        <div class="meta-item">Spotter: <strong>${f.form.spotter || '–'}</strong></div>
+        <div class="meta-item">Duration: <strong>${f.form.duration ? f.form.duration+' mins' : '–'}</strong></div>
+        <div class="meta-item">Batteries: <strong>${f.form.batteries || '–'}</strong></div>
+        <div class="meta-item" style="grid-column:1/-1;">Weather: <strong>${f.form.weather || '–'}</strong></div>
+      </div>
+      <div class="flight-card-scores">${badges}</div>
+      <div class="flight-card-actions">
+        <button class="card-btn primary" onclick="viewFlight(${f.id})">View Full</button>
+        <button class="card-btn" onclick="printFlight(${f.id})">🖨 Print</button>
+        <button class="card-btn danger" onclick="deleteFlight(${f.id})">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── VIEW FLIGHT DETAIL ──
+function viewFlight(id) {
+  const f = flights.find(x => x.id === id);
+  if (!f) return;
+  document.getElementById('modal-title').textContent = f.form.location || 'Flight Record';
+  const dateStr = f.form.date ? new Date(f.form.date + 'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : '–';
+  let html = `<div style="font-size:0.78rem;color:var(--muted);margin-bottom:12px;">${dateStr} · Saved ${new Date(f.savedAt).toLocaleTimeString('en-GB')}</div>`;
+  
+  // Meta
+  const meta = [
+    ['Pilot', f.form.pilot], ['Spotter', f.form.spotter],
+    ['Dispatch time', f.form.time], ['Landing time', f.form.landtime],
+    ['Duration', f.form.duration ? f.form.duration + ' mins' : ''], ['Batteries', f.form.batteries],
+    ['Incident ref', f.form.ref], ['Weather', f.form.weather],
+    ['Notes', f.form.notes], ['Findings', f.form.findings],
+  ].filter(([k,v]) => v);
+  
+  html += '<div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:14px;">';
+  html += meta.map(([k,v]) => `<div style="font-size:0.8rem;margin-bottom:5px;"><span style="color:var(--muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;">${k}: </span><strong>${v}</strong></div>`).join('');
+  html += '</div>';
+
+  // Checklist items
+  f.scores.forEach((s, i) => {
+    html += `<div style="font-family:var(--cond);font-size:0.72rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:${s.done===s.total?'var(--green)':'var(--amber)'};margin:12px 0 6px;">${s.label}: ${s.done}/${s.total}</div>`;
+    if (f.items && f.items[i]) {
+      f.items[i].forEach(item => {
+        const col = item.done ? 'var(--green)' : 'var(--red)';
+        const icon = item.done ? '✓' : '✗';
+        html += `<div style="display:flex;gap:8px;margin-bottom:4px;font-size:0.78rem;"><span style="color:${col};font-weight:700;min-width:14px;">${icon}</span><span style="color:${item.done?'var(--muted)':'var(--text)'};${item.done?'text-decoration:line-through;':''}">${item.label}</span></div>`;
+      });
+    }
+  });
+
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('flight-modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('flight-modal').classList.remove('open'); }
+
+// ── DELETE FLIGHT ──
+function deleteFlight(id) {
+  if (!confirm('Delete this flight record?')) return;
+  flights = flights.filter(f => f.id !== id);
+  try { localStorage.setItem('warksar_flights', JSON.stringify(flights)); } catch(e) {}
+  renderLog();
+}
+
+function clearAllFlights() {
+  if (!confirm('Delete ALL flight records? This cannot be undone.')) return;
+  flights = [];
+  try { localStorage.setItem('warksar_flights', JSON.stringify(flights)); } catch(e) {}
+  renderLog();
+}
+
+// ── PRINT ──
+function printFlight(id) {
+  const f = flights.find(x => x.id === id);
+  if (!f) return;
+  const dateStr = f.form.date ? new Date(f.form.date + 'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : '–';
+  
+  const win = window.open('', '_blank');
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>WarkSAR Flight Record</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 24px; }
+    h1 { font-size: 20px; margin-bottom: 2px; }
+    h2 { font-size: 14px; border-bottom: 2px solid #333; padding-bottom: 4px; margin: 16px 0 8px; }
+    h3 { font-size: 12px; font-weight: bold; margin: 10px 0 4px; color: #444; text-transform: uppercase; letter-spacing: 0.05em; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 12px; }
+    .meta-item { font-size: 11px; } .meta-item strong { display: block; font-size: 12px; }
+    .check-row { display: flex; gap: 8px; margin-bottom: 3px; font-size: 11px; align-items: flex-start; }
+    .check-icon { font-weight: bold; min-width: 12px; }
+    .done-row { color: #888; text-decoration: line-through; }
+    .fail-row { color: #111; }
+    .score-line { font-size: 11px; color: #555; margin-bottom: 6px; }
+    .footer { margin-top: 30px; border-top: 1px solid #ccc; padding-top: 8px; font-size: 10px; color: #888; }
+    
+/* ── INSTALL BANNER ── */
+.install-banner {
+  background: var(--orange-dim); border-bottom: 1px solid var(--orange);
+  padding: 10px 14px; display: none; align-items: center; justify-content: space-between;
+  gap: 10px; flex-shrink: 0;
+}
+.install-banner.show { display: flex; }
+.install-banner-text { font-size: 0.78rem; color: var(--orange); font-weight: 500; line-height: 1.4; }
+.install-banner-btn {
+  background: var(--orange); color: white; border: none; border-radius: 6px;
+  padding: 7px 14px; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  white-space: nowrap; font-family: var(--cond); letter-spacing: 0.04em;
+}
+
+@media print { body { margin: 12px; } }
+  </style></head><body>
+  <h1>WarkSAR — Flight Record</h1>
+  <div style="font-size:12px;color:#555;margin-bottom:12px;">${dateStr} &nbsp;·&nbsp; ${f.form.location || '–'} &nbsp;·&nbsp; Ref: ${f.form.ref || '–'}</div>
+  <h2>Flight Details</h2>
+  <div class="meta-grid">
+    <div class="meta-item"><span>Pilot</span><strong>${f.form.pilot||'–'}</strong></div>
+    <div class="meta-item"><span>Spotter</span><strong>${f.form.spotter||'–'}</strong></div>
+    <div class="meta-item"><span>Dispatch time</span><strong>${f.form.time||'–'}</strong></div>
+    <div class="meta-item"><span>Landing time</span><strong>${f.form.landtime||'–'}</strong></div>
+    <div class="meta-item"><span>Duration</span><strong>${f.form.duration ? f.form.duration+' mins' : '–'}</strong></div>
+    <div class="meta-item"><span>Battery IDs</span><strong>${f.form.batteries||'–'}</strong></div>
+    <div class="meta-item"><span>Weather</span><strong>${f.form.weather||'–'}</strong></div>
+    <div class="meta-item"><span>Incident ref</span><strong>${f.form.ref||'–'}</strong></div>
+  </div>
+  ${f.form.findings ? `<div style="background:#f5f5f5;padding:8px;border-radius:4px;margin-bottom:12px;"><strong>Findings / Outcome:</strong><br>${f.form.findings}</div>` : ''}
+  ${f.form.notes ? `<div style="background:#f5f5f5;padding:8px;border-radius:4px;margin-bottom:12px;"><strong>Notes:</strong><br>${f.form.notes}</div>` : ''}
+  <h2>Checklist Completion</h2>`;
+
+  f.scores.forEach((s, i) => {
+    const pct = s.total > 0 ? Math.round(s.done/s.total*100) : 0;
+    html += `<h3>${s.label}</h3><div class="score-line">${s.done} of ${s.total} items completed (${pct}%)</div>`;
+    if (f.items && f.items[i]) {
+      f.items[i].forEach(item => {
+        const cls = item.done ? 'done-row' : 'fail-row';
+        const icon = item.done ? '✓' : '✗';
+        html += `<div class="check-row ${cls}"><span class="check-icon">${icon}</span><span>${item.label}</span></div>`;
+      });
+    }
+  });
+
+  html += `<div class="footer">WarkSAR Drone Operations · Printed ${new Date().toLocaleString('en-GB')} · Based on Lowland Rescue guidance and CAA regulations</div>
+  </body></html>`;
+  
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 500);
+}
+
+function printReport() {
+  // Print current checklist state
+  const tab = document.querySelector('.nav-tab.active');
+  const idx = Array.from(document.querySelectorAll('.nav-tab')).indexOf(tab);
+  if (idx === 5) {
+    // Print log
+    if (flights.length === 0) { alert('No flight records to print.'); return; }
+    printFlightSummary();
+  } else {
+    window.print();
+  }
+}
+
+function printFlightSummary() {
+  const win = window.open('', '_blank');
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>WarkSAR Flight Log</title>
+  <style>body{font-family:Arial,sans-serif;font-size:11px;margin:20px;} h1{font-size:18px;} table{width:100%;border-collapse:collapse;font-size:10px;} th{background:#eee;padding:5px 8px;text-align:left;border:1px solid #ccc;} td{padding:5px 8px;border:1px solid #ccc;} .footer{margin-top:20px;font-size:9px;color:#888;border-top:1px solid #ccc;padding-top:6px;}</style>
+  </head><body><h1>WarkSAR — Flight Log Summary</h1><p style="font-size:10px;color:#666;">Printed ${new Date().toLocaleString('en-GB')}</p>
+  <table><thead><tr><th>Date</th><th>Location</th><th>Pilot</th><th>Duration</th><th>Ref</th><th>Survey</th><th>Pre-Flight</th><th>Pilot</th><th>Post</th><th>Findings</th></tr></thead><tbody>`;
+  flights.forEach(f => {
+    const dateStr = f.form.date ? new Date(f.form.date+'T12:00').toLocaleDateString('en-GB') : '–';
+    const scores = f.scores.map(s => `${s.done}/${s.total}`);
+    html += `<tr><td>${dateStr}</td><td>${f.form.location||'–'}</td><td>${f.form.pilot||'–'}</td><td>${f.form.duration||'–'} mins</td><td>${f.form.ref||'–'}</td>${scores.map(s=>`<td>${s}</td>`).join('')}<td>${f.form.findings||'–'}</td></tr>`;
+  });
+  html += `</tbody></table><div class="footer">WarkSAR Drone Operations · Based on Lowland Rescue guidance and CAA regulations</div></body></html>`;
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 400);
+}
+
+// ── INIT ──
+function init() {
+  // Set today's date
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('f-date').value = today;
+  // Set current time
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('f-time').value = `${hh}:${mm}`;
+  renderLog();
+
+  // Show install banner if not already installed as standalone
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+  if (!isStandalone) {
+    // Delay slightly so it doesn't flash immediately
+    setTimeout(() => {
+      const banner = document.getElementById('install-banner');
+      if (banner) banner.style.display = 'flex';
+    }, 1500);
+  }
+}
+
+// Close modal on overlay click
+document.getElementById('flight-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ── PWA: Inline manifest (works from any URL including Google Drive) ──
+(function() {
+  const manifest = {
+    name: "WarkSAR Drone Ops",
+    short_name: "DroneOps",
+    description: "WarkSAR Drone Operations Checklists",
+    start_url: window.location.href,
+    display: "standalone",
+    background_color: "#0b0f14",
+    theme_color: "#0b0f14",
+    orientation: "portrait-primary",
+    icons: [{
+      src: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='#f07030'/><text x='256' y='360' text-anchor='middle' font-family='Arial Black,Arial' font-weight='900' font-size='320' fill='white'>W</text></svg>`),
+      sizes: "512x512",
+      type: "image/svg+xml",
+      purpose: "any maskable"
+    }]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type: 'application/manifest+json'});
+  const url = URL.createObjectURL(blob);
+  document.getElementById('manifest-placeholder').setAttribute('href', url);
+
+  // Apple touch icon
+  const iconSvg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='28' fill='%23f07030'/><text x='90' y='128' text-anchor='middle' font-family='Arial Black,Arial' font-weight='900' font-size='110' fill='white'>W</text></svg>`;
+  document.getElementById('apple-icon').setAttribute('href', 'data:image/svg+xml,' + iconSvg);
+})();
+
+// ── PWA: Install prompt ──
+let deferredPrompt = null;
+const installBtn = document.getElementById('install-btn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (installBtn) {
+    installBtn.style.display = 'flex';
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  if (installBtn) installBtn.style.display = 'none';
+  deferredPrompt = null;
+});
+
+function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      if (installBtn) installBtn.style.display = 'none';
+    });
+  } else {
+    // Fallback instructions
+    alert('To install:\n\nAndroid (Chrome): Tap the ⋮ menu → "Add to Home screen"\n\niPhone (Safari): Tap the Share button → "Add to Home Screen"');
+  }
+}
+
+// ── PWA: Inline Service Worker for offline support ──
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE = 'warksar-v1';
+    self.addEventListener('install', e => {
+      e.waitUntil(
+        caches.open(CACHE).then(c => c.addAll([]))
+      );
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', e => {
+      e.waitUntil(clients.claim());
+    });
+    self.addEventListener('fetch', e => {
+      e.respondWith(
+        caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => cached))
+      );
+    });
+  `;
+  const swBlob = new Blob([swCode], {type: 'application/javascript'});
+  const swUrl = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swUrl, {scope: './'}).catch(() => {});
+}
+
+init();
+</script>
+</body>
+</html>

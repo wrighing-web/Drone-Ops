@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WarkSAR – Drone Operations Checklists</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root {
     --bg: #f4f6f9;
@@ -191,17 +192,75 @@
   }
   .pilot-note strong { color: var(--blue); }
 
-  /* EMAIL BUTTON */
-  .email-btn {
+  /* ACTION BUTTONS */
+  .action-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .email-btn, .pdf-btn {
     display: inline-flex; align-items: center; gap: 7px;
-    background: var(--orange); color: white; border: none;
-    font-family: var(--cond); font-size: 0.82rem; font-weight: 700;
+    border: none; font-family: var(--cond); font-size: 0.82rem; font-weight: 700;
     letter-spacing: 0.06em; text-transform: uppercase;
     padding: 8px 14px; border-radius: 5px; cursor: pointer;
     transition: background 0.15s; white-space: nowrap;
   }
+  .email-btn { background: var(--orange); color: white; }
   .email-btn:hover { background: #a84000; }
-  .email-btn svg { width: 14px; height: 14px; fill: white; flex-shrink: 0; }
+  .pdf-btn { background: var(--blue); color: white; }
+  .pdf-btn:hover { background: #144d8a; }
+  .email-btn svg, .pdf-btn svg { width: 14px; height: 14px; fill: white; flex-shrink: 0; }
+
+  /* BRIEFING SCRIPT */
+  .briefing-step {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    margin-bottom: 12px; overflow: hidden;
+  }
+  .briefing-step-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; background: var(--surface2); border-bottom: 1px solid var(--border);
+  }
+  .step-num {
+    background: var(--orange); color: white; font-family: var(--mono); font-size: 0.72rem;
+    font-weight: 700; width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .briefing-step-head strong { font-family: var(--cond); font-size: 0.9rem; letter-spacing: 0.04em; }
+  .briefing-step-body { padding: 14px; }
+  .script-block {
+    background: #f8f4ee; border-left: 3px solid var(--orange); border-radius: 0 4px 4px 0;
+    padding: 12px 14px; margin: 8px 0; font-size: 0.87rem; line-height: 1.7;
+    font-style: italic; color: #2a1a08;
+  }
+  .script-block em { font-style: normal; color: var(--orange); font-weight: 700; }
+  .script-note {
+    font-size: 0.78rem; color: var(--muted); margin-top: 6px; line-height: 1.6; padding-left: 2px;
+  }
+  .confirm-row {
+    display: flex; align-items: center; gap: 10px; margin-top: 10px;
+    background: var(--green-dim); border: 1px solid #90d0aa; border-radius: 5px; padding: 9px 12px;
+    cursor: pointer; transition: background 0.12s;
+  }
+  .confirm-row:hover { background: #c8ecd6; }
+  .confirm-row.confirmed .confirm-box::after { content: '✓'; color: white; font-size: 12px; font-weight: 800; }
+  .confirm-box {
+    width: 20px; height: 20px; min-width: 20px; border-radius: 4px;
+    border: 2px solid var(--green); background: white;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .confirm-row.confirmed .confirm-box { background: var(--green); border-color: var(--green); }
+  .confirm-label { font-size: 0.84rem; font-weight: 600; color: #1a6030; }
+  .briefing-complete-banner {
+    display: none; background: var(--green); color: white; text-align: center;
+    font-family: var(--cond); font-size: 1rem; font-weight: 700; letter-spacing: 0.06em;
+    padding: 14px; border-radius: 6px; margin-top: 16px;
+  }
+  .briefing-complete-banner.visible { display: block; }
+  .persons-count-row {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px;
+  }
+  .persons-count-row label { font-size: 0.85rem; font-weight: 600; color: var(--text); flex: 1; min-width: 200px; }
+  .persons-count-row input {
+    width: 70px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px;
+    font-family: var(--mono); font-size: 0.9rem; text-align: center; color: var(--text);
+  }
 
   @media(max-width: 600px) {
     .panel { padding: 16px 12px; }
@@ -225,13 +284,19 @@
   </div>
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
     <div class="header-meta">
-      v1.1 · Mar 2026<br>
+      v1.2 · Mar 2026<br>
       <span class="status-badge">LEGACY DRONE</span>
     </div>
-    <button class="email-btn" onclick="emailReport()">
-      <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4zm2 0v.01L10 10l6-5.99V4H4zm12 2.24-5.6 5.6a.75.75 0 0 1-1.06 0L4 6.24V16h12V6.24z"/></svg>
-      Email Report
-    </button>
+    <div class="action-btns">
+      <button class="pdf-btn" onclick="downloadPDF()">
+        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M4 2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.414L13.586 2H4zm0 2h8.586L16 7.414V16H4V4zm4 5a1 1 0 0 0-1 1v4a1 1 0 1 0 2 0v-1h1a2 2 0 1 0 0-4H8zm0 2h1a0 0 0 1 1 0 2H8v-2zm4-1a1 1 0 0 1 1-1h.5a1 1 0 1 1 0 2H13v2a1 1 0 1 1-2 0v-3zm-6 1a1 1 0 0 1 1-1h.5a2.5 2.5 0 0 1 0 5H7a1 1 0 0 1-1-1v-3z"/></svg>
+        Save PDF
+      </button>
+      <button class="email-btn" onclick="emailReport()">
+        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4zm14 2.236-5.443 4.073a1 1 0 0 1-1.114 0L4 6.236V16h12V6.236zM4.554 5h10.892L10 8.764 4.554 5z"/></svg>
+        Email Report
+      </button>
+    </div>
   </div>
 </div>
 
@@ -242,6 +307,7 @@
     <button class="tab" onclick="switchTab(2)"><span class="tab-num">3</span>Pilot &amp; Crew</button>
     <button class="tab" onclick="switchTab(3)"><span class="tab-num">4</span>Post-Flight</button>
     <button class="tab" onclick="switchTab(4)"><span class="tab-num">⚠</span>Abort</button>
+    <button class="tab" onclick="switchTab(5)"><span class="tab-num">👥</span>Involved Persons</button>
   </div>
 </div>
 
@@ -508,54 +574,159 @@
   </div>
 </div>
 
+<!-- ====== TAB 6: INVOLVED PERSONS BRIEFING ====== -->
+<div class="panel" id="panel-5">
+  <div class="section-head">
+    <span class="section-icon">👥</span>
+    <div>
+      <h2>Involved Persons Briefing</h2>
+      <div class="section-desc">Deliver this briefing to make personnel "involved persons" under CAA regulations — permitting closer drone proximity.</div>
+    </div>
+  </div>
+
+  <div class="authority-note">
+    <strong>Regulatory basis:</strong> Under UK CAA regulations (Article 16 of the Air Navigation Order and the UAS Regulation), an "involved person" is someone who has been briefed on the operation and accepted the associated risks. Once briefed and consenting, the standard 50 m separation distance from uninvolved persons no longer applies to them — enabling effective close-proximity SAR operations.
+  </div>
+
+  <div class="nogo-box" style="margin-bottom:18px;">
+    <h3>⚠ This briefing is mandatory before any close-proximity drone work</h3>
+    <ul>
+      <li>Deliver this briefing verbally, clearly, before the operation begins</li>
+      <li>All persons must confirm understanding and consent — no exceptions</li>
+      <li>If anyone declines or has concerns, treat them as uninvolved — maintain full separation</li>
+      <li>Log the number of persons briefed in the flight record</li>
+    </ul>
+  </div>
+
+  <div class="persons-count-row">
+    <label>Number of persons being briefed (for your log):</label>
+    <input type="number" id="persons-count" min="1" value="1">
+  </div>
+
+  <div class="check-group-title">Briefing Script — Read Aloud</div>
+
+  <div class="briefing-step">
+    <div class="briefing-step-head">
+      <div class="step-num">1</div>
+      <strong>Introduction &amp; Purpose</strong>
+    </div>
+    <div class="briefing-step-body">
+      <div class="script-block">
+        "My name is <em>[your name]</em> and I am the Remote Pilot in Command for this operation. We are conducting a drone-assisted search as part of a WarkSAR callout. I need to give you a brief safety briefing so that you can work safely in the area where the drone will be operating."
+      </div>
+      <div class="confirm-row" onclick="toggleConfirm(this)">
+        <div class="confirm-box"></div>
+        <div class="confirm-label">Delivered — persons are attentive</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="briefing-step">
+    <div class="briefing-step-head">
+      <div class="step-num">2</div>
+      <strong>Describe the Aircraft &amp; Operation</strong>
+    </div>
+    <div class="briefing-step-body">
+      <div class="script-block">
+        "We will be flying a drone — a small multi-rotor unmanned aircraft — in and around your location. It weighs under 25 kg and is operated under a CAA Operational Authorisation. The drone may fly at low altitude and could come within a short distance of you during the search."
+      </div>
+      <div class="script-note">Point to or show the aircraft if possible — familiarity reduces startle responses.</div>
+      <div class="confirm-row" onclick="toggleConfirm(this)">
+        <div class="confirm-box"></div>
+        <div class="confirm-label">Delivered — aircraft shown or described</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="briefing-step">
+    <div class="briefing-step-head">
+      <div class="step-num">3</div>
+      <strong>Hazard Awareness</strong>
+    </div>
+    <div class="briefing-step-body">
+      <div class="script-block">
+        "There are some important safety points. The propellers are sharp and fast-moving — never approach the drone while it is powered or the motors are running. Do not reach up towards the aircraft at any time. If the drone needs to land near you, stand still and wait for my instruction — do not move towards it."
+      </div>
+      <div class="confirm-row" onclick="toggleConfirm(this)">
+        <div class="confirm-box"></div>
+        <div class="confirm-label">Hazards explained — questions answered</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="briefing-step">
+    <div class="briefing-step-head">
+      <div class="step-num">4</div>
+      <strong>Emergency &amp; Abort Procedures</strong>
+    </div>
+    <div class="briefing-step-body">
+      <div class="script-block">
+        "If you hear me or the spotter shout <em>'ABORT'</em> or <em>'LAND NOW'</em>, move away from your current position immediately and take cover if you can. Do not look up at the aircraft — move first, then take cover. I will always try to land away from people, but your safety is the priority."
+      </div>
+      <div class="script-note">Ensure the abort signal is clearly understood — confirm it back verbally if time allows.</div>
+      <div class="confirm-row" onclick="toggleConfirm(this)">
+        <div class="confirm-box"></div>
+        <div class="confirm-label">Abort signal confirmed understood</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="briefing-step">
+    <div class="briefing-step-head">
+      <div class="step-num">5</div>
+      <strong>Consent &amp; Right to Decline</strong>
+    </div>
+    <div class="briefing-step-body">
+      <div class="script-block">
+        "By staying in the operational area, you are confirming that you have understood this briefing and that you consent to the drone operating in close proximity to you. <em>You are not obliged to remain in the area.</em> If you have any concerns, please tell me now — I will keep the drone away from you and we will find another way to manage the operation."
+      </div>
+      <div class="script-note">Allow a moment for questions. Anyone who declines must be kept outside the 50 m separation zone for the entire operation.</div>
+      <div class="confirm-row" onclick="toggleConfirm(this)">
+        <div class="confirm-box"></div>
+        <div class="confirm-label">Consent confirmed — all persons agreed or relocated</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="briefing-step">
+    <div class="briefing-step-head">
+      <div class="step-num">6</div>
+      <strong>Ongoing Awareness</strong>
+    </div>
+    <div class="briefing-step-body">
+      <div class="script-block">
+        "During the operation, the spotter will monitor the airspace and keep you informed. If the search area changes or the drone needs to come much closer to you, we will update you at that point. Please keep an eye out and flag anything unusual to the spotter immediately."
+      </div>
+      <div class="confirm-row" onclick="toggleConfirm(this)">
+        <div class="confirm-box"></div>
+        <div class="confirm-label">Ongoing comms arrangement confirmed</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="briefing-step">
+    <div class="briefing-step-head">
+      <div class="step-num">7</div>
+      <strong>Log &amp; Record</strong>
+    </div>
+    <div class="briefing-step-body">
+      <div class="script-block">
+        "I am now recording in the flight log that <em>[number]</em> persons have received and understood this safety briefing and have consented to the drone operating in close proximity. The time is <em>[time]</em>."
+      </div>
+      <div class="script-note">Enter the number of persons in the field above. Record this in your written flight log with time, location, and names where practicable.</div>
+      <div class="confirm-row" onclick="toggleConfirm(this)">
+        <div class="confirm-box"></div>
+        <div class="confirm-label">Logged — number of persons and time recorded in flight log</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="briefing-complete-banner" id="briefing-banner">
+    ✓ ALL STEPS COMPLETE — PERSONS ARE NOW INVOLVED PERSONS UNDER CAA REGULATIONS
+  </div>
+</div>
+
 <script>
-  function emailReport() {
-    const tabNames = ['Site Survey', 'Pre-Flight', 'Pilot & Crew', 'Post-Flight', 'Abort Criteria'];
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-    const timeStr = now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
-
-    let body = 'WarkSAR – Drone Operations Checklist Report\r\n';
-    body += 'Generated: ' + dateStr + ' at ' + timeStr + '\r\n';
-    body += '='.repeat(50) + '\r\n\r\n';
-
-    let grandTotal = 0, grandDone = 0;
-
-    for (let i = 0; i < 4; i++) {
-      const panel = document.getElementById('panel-' + i);
-      if (!panel) continue;
-      const items = panel.querySelectorAll('.check-item[onclick]');
-      const done = panel.querySelectorAll('.check-item.done').length;
-      grandTotal += items.length;
-      grandDone += done;
-
-      body += tabNames[i].toUpperCase() + '\r\n';
-      body += '-'.repeat(30) + '\r\n';
-      body += 'Progress: ' + done + ' / ' + items.length + ' items completed';
-      body += (done === items.length && items.length > 0) ? ' ✓ COMPLETE' : ' – IN PROGRESS';
-      body += '\r\n\r\n';
-
-      items.forEach(item => {
-        const label = item.querySelector('.check-label');
-        const isDone = item.classList.contains('done');
-        const isCritical = item.classList.contains('critical');
-        const text = label ? label.innerText.replace(/\s+/g, ' ').trim() : '';
-        body += (isDone ? '[✓] ' : '[ ] ') + (isCritical ? '[CRITICAL] ' : '') + text + '\r\n';
-      });
-      body += '\r\n';
-    }
-
-    body += '='.repeat(50) + '\r\n';
-    body += 'OVERALL: ' + grandDone + ' / ' + grandTotal + ' items completed\r\n';
-
-    const subject = 'WarkSAR Drone Checklist Report – ' + dateStr;
-    const mailto = 'mailto:paul@wrighting.co.uk'
-      + '?subject=' + encodeURIComponent(subject)
-      + '&body=' + encodeURIComponent(body);
-
-    window.location.href = mailto;
-  }
-
   function switchTab(idx) {
     document.querySelectorAll('.panel').forEach((p, i) => p.classList.toggle('active', i === idx));
     document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
@@ -579,6 +750,209 @@
     const panel = document.getElementById('panel-' + panelIdx);
     panel.querySelectorAll('.check-item.done').forEach(el => el.classList.remove('done'));
     updateProgress(panelIdx);
+  }
+
+  function toggleConfirm(el) {
+    el.classList.toggle('confirmed');
+    checkBriefingComplete();
+  }
+
+  function checkBriefingComplete() {
+    const rows = document.querySelectorAll('#panel-5 .confirm-row');
+    const allDone = Array.from(rows).every(r => r.classList.contains('confirmed'));
+    const banner = document.getElementById('briefing-banner');
+    banner.classList.toggle('visible', allDone);
+  }
+
+  function buildReportText() {
+    const tabNames = ['Site Survey', 'Pre-Flight', 'Pilot & Crew', 'Post-Flight'];
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    const timeStr = now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+
+    let lines = [];
+    lines.push('WarkSAR – Drone Operations Checklist Report');
+    lines.push('Generated: ' + dateStr + ' at ' + timeStr);
+    lines.push('='.repeat(50));
+    lines.push('');
+
+    let grandTotal = 0, grandDone = 0;
+    for (let i = 0; i < 4; i++) {
+      const panel = document.getElementById('panel-' + i);
+      if (!panel) continue;
+      const items = panel.querySelectorAll('.check-item[onclick]');
+      const done = panel.querySelectorAll('.check-item.done').length;
+      grandTotal += items.length;
+      grandDone += done;
+
+      lines.push(tabNames[i].toUpperCase());
+      lines.push('-'.repeat(30));
+      lines.push('Progress: ' + done + ' / ' + items.length + ' items completed' + (done === items.length && items.length > 0 ? ' — COMPLETE' : ' — IN PROGRESS'));
+      lines.push('');
+      items.forEach(item => {
+        const label = item.querySelector('.check-label');
+        const isDone = item.classList.contains('done');
+        const isCritical = item.classList.contains('critical');
+        const text = label ? label.innerText.replace(/\s+/g, ' ').trim() : '';
+        lines.push((isDone ? '[v] ' : '[ ] ') + (isCritical ? '[CRITICAL] ' : '') + text);
+      });
+      lines.push('');
+    }
+
+    // Involved Persons
+    const briefingRows = document.querySelectorAll('#panel-5 .confirm-row');
+    const briefingDone = Array.from(briefingRows).filter(r => r.classList.contains('confirmed')).length;
+    const personsCount = document.getElementById('persons-count') ? document.getElementById('persons-count').value : '?';
+    lines.push('INVOLVED PERSONS BRIEFING');
+    lines.push('-'.repeat(30));
+    lines.push('Persons briefed: ' + personsCount);
+    lines.push('Briefing steps completed: ' + briefingDone + ' / ' + briefingRows.length);
+    lines.push(briefingDone === briefingRows.length ? 'Status: COMPLETE — persons are Involved Persons under CAA regulations' : 'Status: INCOMPLETE');
+    lines.push('');
+
+    lines.push('='.repeat(50));
+    lines.push('OVERALL CHECKLIST: ' + grandDone + ' / ' + grandTotal + ' items completed');
+
+    return { lines, dateStr, timeStr, grandDone, grandTotal };
+  }
+
+  function emailReport() {
+    const { lines, dateStr } = buildReportText();
+    const body = lines.join('\r\n');
+    const subject = 'WarkSAR Drone Checklist Report – ' + dateStr;
+    const mailto = 'mailto:paul@wrighting.co.uk'
+      + '?subject=' + encodeURIComponent(subject)
+      + '&body=' + encodeURIComponent(body);
+    window.location.href = mailto;
+  }
+
+  function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const { lines, dateStr, timeStr } = buildReportText();
+
+    const pageW = 210, margin = 14, usableW = pageW - margin * 2;
+    let y = 18;
+
+    const addPage = () => { doc.addPage(); y = 18; };
+    const checkY = (needed) => { if (y + needed > 285) addPage(); };
+
+    // Header bar
+    doc.setFillColor(200, 80, 0);
+    doc.rect(0, 0, 210, 12, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text('WARKSAR', margin, 8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Drone Operations Checklist Report', margin + 22, 8);
+    doc.text(dateStr + '  ' + timeStr, pageW - margin, 8, { align: 'right' });
+
+    y = 22;
+    doc.setTextColor(30, 30, 40);
+
+    const tabNames = ['Site Survey', 'Pre-Flight', 'Pilot & Crew', 'Post-Flight'];
+
+    for (let i = 0; i < 4; i++) {
+      const panel = document.getElementById('panel-' + i);
+      if (!panel) continue;
+      const items = panel.querySelectorAll('.check-item[onclick]');
+      const done = panel.querySelectorAll('.check-item.done').length;
+
+      checkY(14);
+      doc.setFillColor(238, 241, 245);
+      doc.rect(margin, y - 5, usableW, 9, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(200, 80, 0);
+      doc.text(tabNames[i].toUpperCase(), margin + 2, y);
+      doc.setTextColor(100, 120, 140);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(done + ' / ' + items.length + ' completed', pageW - margin, y, { align: 'right' });
+      y += 7;
+
+      items.forEach(item => {
+        checkY(7);
+        const label = item.querySelector('.check-label');
+        const isDone = item.classList.contains('done');
+        const isCritical = item.classList.contains('critical');
+        const text = label ? label.innerText.replace(/\s+/g, ' ').trim() : '';
+
+        // checkbox
+        doc.setDrawColor(180, 180, 190);
+        doc.setFillColor(isDone ? 26 : 255, isDone ? 122 : 255, isDone ? 58 : 255);
+        doc.roundedRect(margin, y - 3.5, 4, 4, 0.7, 0.7, isDone ? 'F' : 'S');
+        if (isDone) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7);
+          doc.setTextColor(255, 255, 255);
+          doc.text('v', margin + 0.8, y - 0.2);
+        }
+
+        if (isCritical) {
+          doc.setFillColor(252, 236, 234);
+          doc.setDrawColor(192, 57, 43);
+          doc.rect(margin + 5.5, y - 4, usableW - 5.5, 6, 'FD');
+        }
+
+        doc.setFont('helvetica', isDone ? 'normal' : 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(isDone ? 150 : 30, isDone ? 160 : 32, isDone ? 170 : 45);
+        const wrapped = doc.splitTextToSize(text, usableW - 8);
+        doc.text(wrapped, margin + 6, y);
+        y += wrapped.length * 4.5 + 1.5;
+      });
+      y += 4;
+    }
+
+    // Involved persons section
+    checkY(20);
+    doc.setFillColor(238, 241, 245);
+    doc.rect(margin, y - 5, usableW, 9, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(200, 80, 0);
+    doc.text('INVOLVED PERSONS BRIEFING', margin + 2, y);
+    y += 7;
+    const briefingRows = document.querySelectorAll('#panel-5 .confirm-row');
+    const briefingDone = Array.from(briefingRows).filter(r => r.classList.contains('confirmed')).length;
+    const personsCount = document.getElementById('persons-count') ? document.getElementById('persons-count').value : '?';
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(30, 32, 45);
+    doc.text('Persons briefed: ' + personsCount + '     Steps complete: ' + briefingDone + ' / ' + briefingRows.length, margin + 2, y);
+    y += 5;
+    const bStatus = briefingDone === briefingRows.length
+      ? 'COMPLETE — persons are Involved Persons under CAA regulations'
+      : 'INCOMPLETE — briefing not fully delivered';
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(briefingDone === briefingRows.length ? 26 : 192, briefingDone === briefingRows.length ? 122 : 57, briefingDone === briefingRows.length ? 58 : 43);
+    doc.text(bStatus, margin + 2, y);
+    y += 10;
+
+    // Footer total
+    checkY(14);
+    doc.setFillColor(200, 80, 0);
+    doc.rect(margin, y, usableW, 9, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    const { grandDone, grandTotal } = buildReportText();
+    doc.text('OVERALL: ' + grandDone + ' / ' + grandTotal + ' checklist items completed', margin + 3, y + 6);
+
+    // Page numbers
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= pageCount; p++) {
+      doc.setPage(p);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(150, 160, 175);
+      doc.text('WarkSAR Drone Checklist · Page ' + p + ' of ' + pageCount, pageW / 2, 292, { align: 'center' });
+    }
+
+    const filename = 'WarkSAR-Checklist-' + new Date().toISOString().slice(0, 10) + '.pdf';
+    doc.save(filename);
   }
 </script>
 </body>

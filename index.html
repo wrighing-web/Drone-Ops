@@ -191,6 +191,18 @@
   }
   .pilot-note strong { color: var(--blue); }
 
+  /* EMAIL BUTTON */
+  .email-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--orange); color: white; border: none;
+    font-family: var(--cond); font-size: 0.82rem; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 8px 14px; border-radius: 5px; cursor: pointer;
+    transition: background 0.15s; white-space: nowrap;
+  }
+  .email-btn:hover { background: #a84000; }
+  .email-btn svg { width: 14px; height: 14px; fill: white; flex-shrink: 0; }
+
   @media(max-width: 600px) {
     .panel { padding: 16px 12px; }
     .header { padding: 12px 14px; }
@@ -211,9 +223,15 @@
       <div class="subtitle">Lowland Rescue guidance &amp; CAA regulations · Legacy drone</div>
     </div>
   </div>
-  <div class="header-meta">
-    v1.1 · Mar 2026<br>
-    <span class="status-badge">LEGACY DRONE</span>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div class="header-meta">
+      v1.1 · Mar 2026<br>
+      <span class="status-badge">LEGACY DRONE</span>
+    </div>
+    <button class="email-btn" onclick="emailReport()">
+      <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4zm2 0v.01L10 10l6-5.99V4H4zm12 2.24-5.6 5.6a.75.75 0 0 1-1.06 0L4 6.24V16h12V6.24z"/></svg>
+      Email Report
+    </button>
   </div>
 </div>
 
@@ -491,6 +509,53 @@
 </div>
 
 <script>
+  function emailReport() {
+    const tabNames = ['Site Survey', 'Pre-Flight', 'Pilot & Crew', 'Post-Flight', 'Abort Criteria'];
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    const timeStr = now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+
+    let body = 'WarkSAR – Drone Operations Checklist Report\r\n';
+    body += 'Generated: ' + dateStr + ' at ' + timeStr + '\r\n';
+    body += '='.repeat(50) + '\r\n\r\n';
+
+    let grandTotal = 0, grandDone = 0;
+
+    for (let i = 0; i < 4; i++) {
+      const panel = document.getElementById('panel-' + i);
+      if (!panel) continue;
+      const items = panel.querySelectorAll('.check-item[onclick]');
+      const done = panel.querySelectorAll('.check-item.done').length;
+      grandTotal += items.length;
+      grandDone += done;
+
+      body += tabNames[i].toUpperCase() + '\r\n';
+      body += '-'.repeat(30) + '\r\n';
+      body += 'Progress: ' + done + ' / ' + items.length + ' items completed';
+      body += (done === items.length && items.length > 0) ? ' ✓ COMPLETE' : ' – IN PROGRESS';
+      body += '\r\n\r\n';
+
+      items.forEach(item => {
+        const label = item.querySelector('.check-label');
+        const isDone = item.classList.contains('done');
+        const isCritical = item.classList.contains('critical');
+        const text = label ? label.innerText.replace(/\s+/g, ' ').trim() : '';
+        body += (isDone ? '[✓] ' : '[ ] ') + (isCritical ? '[CRITICAL] ' : '') + text + '\r\n';
+      });
+      body += '\r\n';
+    }
+
+    body += '='.repeat(50) + '\r\n';
+    body += 'OVERALL: ' + grandDone + ' / ' + grandTotal + ' items completed\r\n';
+
+    const subject = 'WarkSAR Drone Checklist Report – ' + dateStr;
+    const mailto = 'mailto:paul@wrighting.co.uk'
+      + '?subject=' + encodeURIComponent(subject)
+      + '&body=' + encodeURIComponent(body);
+
+    window.location.href = mailto;
+  }
+
   function switchTab(idx) {
     document.querySelectorAll('.panel').forEach((p, i) => p.classList.toggle('active', i === idx));
     document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
